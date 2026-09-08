@@ -23,58 +23,82 @@ function paintSwatches(parts: Swatch[], grey: boolean): void {
 // sub-container (root.getData('armR')) so heroSwing() can rotate it.
 
 export function makeJackson(scene: Phaser.Scene): Phaser.GameObjects.Container {
+  const OL = 0x4a2f18; // warm dark outline (reference look, not sticker-white)
+  const out = <T extends Phaser.GameObjects.Shape>(s: T, w = 4): T => { s.setStrokeStyle(w, OL, 1); return s; };
   const parts: Phaser.GameObjects.GameObject[] = [];
-  // boots with straps
-  const bootL = sticker(scene.add.rectangle(-19, -11, 26, 22, 0x5b3a1e));
-  const bootR = sticker(scene.add.rectangle(19, -11, 26, 22, 0x5b3a1e));
-  const strapL = scene.add.rectangle(-19, -8, 26, 6, 0xfbbf24);
-  const strapR = scene.add.rectangle(19, -8, 26, 6, 0xfbbf24);
-  // legs (teal work pants)
-  const legL = sticker(scene.add.rectangle(-17, -33, 24, 26, 0x2b6cb0), 3);
-  const legR = sticker(scene.add.rectangle(17, -33, 24, 26, 0x2b6cb0), 3);
-  // belt + buckle
-  const belt = scene.add.rectangle(0, -48, 68, 11, 0x6b4226);
-  const buckle = sticker(scene.add.rectangle(0, -48, 16, 14, 0xfacc15), 2);
-  // torso vest
-  const torso = sticker(scene.add.rectangle(0, -74, 68, 46, 0xc2570b));
-  const pocket = sticker(scene.add.rectangle(-14, -66, 26, 16, 0xfbbf24), 2);
-  const collarL = scene.add.triangle(-20, -96, 0, 0, -14, 14, 14, 14, 0x92400e);
-  const collarR = scene.add.triangle(20, -96, 0, 0, -14, 14, 14, 14, 0x92400e);
-  // left arm
-  const armL = sticker(scene.add.rectangle(-42, -72, 17, 42, 0xd97706), 3);
-  const gloveL = sticker(scene.add.circle(-42, -48, 11, 0x92400e), 3);
-  // right arm rig (pivot at shoulder)
-  const armR = scene.add.container(42, -88, [
-    sticker(scene.add.rectangle(0, 12, 17, 40, 0xd97706), 3),
-    sticker(scene.add.circle(2, 36, 12, 0x92400e), 3),
-    scene.add.rectangle(20, 22, 9, 52, 0x8b5a2b).setAngle(24),
-    sticker(scene.add.rectangle(36, -4, 40, 12, 0x9ca3af), 3),
-    scene.add.rectangle(36, -4, 40, 5, 0xe5e7eb)
+  // chunky boots with toe caps + straps
+  for (const sx of [-1, 1]) {
+    parts.push(out(scene.add.rectangle(sx * 20, -13, 30, 26, 0x6b4226)));
+    parts.push(scene.add.rectangle(sx * 20 + 6, -8, 18, 12, 0x8b5a2b));
+    parts.push(scene.add.rectangle(sx * 20, -16, 30, 6, 0xfbbf24));
+  }
+  // khaki work pants with side pocket
+  parts.push(out(scene.add.rectangle(-17, -38, 26, 28, 0xd9a441), 3));
+  parts.push(out(scene.add.rectangle(17, -38, 26, 28, 0xd9a441), 3));
+  parts.push(scene.add.rectangle(30, -36, 14, 12, 0xb57e1e));
+  // belt + brass buckle
+  parts.push(scene.add.rectangle(0, -54, 70, 12, 0x5b3a1e));
+  parts.push(out(scene.add.rectangle(0, -54, 18, 15, 0xfacc15), 2));
+  // orange shirt torso with shade side + collar
+  parts.push(out(scene.add.rectangle(0, -80, 70, 46, 0xf97316)));
+  parts.push(scene.add.rectangle(24, -80, 12, 46, 0xea580c));
+  parts.push(scene.add.triangle(-16, -102, 0, 0, -13, 13, 13, 13, 0xc2410c));
+  parts.push(scene.add.triangle(16, -102, 0, 0, -13, 13, 13, 13, 0xc2410c));
+  parts.push(out(scene.add.circle(0, -72, 8, 0xfbbf24), 2));
+  // blue backpack + straps + bedroll (his signature look)
+  parts.push(out(scene.add.rectangle(-48, -82, 24, 42, 0x2563eb)));
+  parts.push(scene.add.rectangle(-48, -82, 24, 10, 0x1d4ed8));
+  parts.push(out(scene.add.circle(-48, -108, 11, 0x16a34a), 3));
+  parts.push(scene.add.rectangle(-30, -80, 8, 40, 0x1e40af));
+  parts.push(scene.add.rectangle(30, -80, 8, 40, 0x1e40af));
+  // left arm resting near hip
+  const armL = scene.add.container(-44, -92, [
+    out(scene.add.rectangle(0, 12, 18, 36, 0xf97316), 3),
+    out(scene.add.circle(-2, 34, 11, 0xfcd9a8), 3)
   ]);
-  // square backpack + bedroll
-  const pack = sticker(scene.add.rectangle(-47, -76, 22, 38, 0x78716c));
-  const bedroll = sticker(scene.add.circle(-47, -100, 11, 0x16a34a), 3);
-  const packStrap = scene.add.rectangle(-34, -76, 6, 38, 0x57534e);
-  // head
-  const head = sticker(scene.add.rectangle(0, -114, 50, 38, 0xfcd9a8));
-  const earL = scene.add.circle(-26, -114, 6, 0xfcd9a8).setStrokeStyle(2, OUTLINE);
-  const earR = scene.add.circle(26, -114, 6, 0xfcd9a8).setStrokeStyle(2, OUTLINE);
-  const eyeL = sticker(scene.add.rectangle(-12, -118, 9, 13, 0x1f2937), 2);
-  const eyeR = sticker(scene.add.rectangle(12, -118, 9, 13, 0x1f2937), 2);
-  const browL = scene.add.rectangle(-12, -128, 12, 4, 0x5b3a1e);
-  const browR = scene.add.rectangle(12, -128, 12, 4, 0x5b3a1e);
-  const smile = scene.add.rectangle(0, -102, 18, 5, 0x92400e);
-  // builder helmet + lamp + glow
-  const helmet = sticker(scene.add.rectangle(0, -140, 62, 20, 0xf59e0b));
-  const brim = sticker(scene.add.rectangle(0, -130, 72, 9, 0xd97706), 3);
-  const lamp = sticker(scene.add.circle(0, -140, 8, 0xfef08a), 2);
-  const lampGlow = scene.add.circle(0, -140, 15, 0xfef08a, 0.35);
-  parts.push(bootL, bootR, strapL, strapR, legL, legR, belt, buckle, torso, pocket,
-    collarL, collarR, armL, gloveL, armR, pack, bedroll, packStrap,
-    head, earL, earR, eyeL, eyeR, browL, browR, smile, helmet, brim, lamp, lampGlow);
+  armL.setAngle(14);
+  parts.push(armL);
+  // right arm rig, hammer raised high
+  const armR = scene.add.container(46, -94, [
+    out(scene.add.rectangle(0, 6, 18, 34, 0xf97316), 3),
+    out(scene.add.circle(4, 28, 12, 0xfcd9a8), 3),
+    scene.add.rectangle(22, -12, 10, 62, 0x8b5a2b).setAngle(-24),
+    out(scene.add.rectangle(40, -38, 46, 24, 0x9ca3af), 3),
+    scene.add.rectangle(40, -44, 46, 8, 0xe5e7eb),
+    scene.add.rectangle(40, -38, 46, 5, 0xfacc15)
+  ]);
+  parts.push(armR);
+  // big head with ears
+  parts.push(out(scene.add.rectangle(0, -126, 58, 44, 0xfcd9a8)));
+  parts.push(out(scene.add.circle(-30, -126, 7, 0xfcd9a8), 2));
+  parts.push(out(scene.add.circle(30, -126, 7, 0xfcd9a8), 2));
+  // messy brown hair tufts + sideburns
+  const hairC = 0x6b3f1d;
+  parts.push(out(scene.add.triangle(-20, -152, 0, 0, -18, 22, 18, 22, hairC), 3));
+  parts.push(out(scene.add.triangle(2, -156, 0, 0, -19, 24, 19, 24, hairC), 3));
+  parts.push(out(scene.add.triangle(24, -150, 0, 0, -16, 20, 16, 20, hairC), 3));
+  parts.push(scene.add.rectangle(-32, -132, 10, 22, hairC));
+  parts.push(scene.add.rectangle(32, -132, 10, 22, hairC));
+  // big glossy eyes with glints + brows (whites/irises registered for blinking)
+  const pupils: Phaser.GameObjects.GameObject[] = [];
+  for (const sx of [-1, 1]) {
+    const white = out(scene.add.ellipse(sx * 14, -128, 17, 21, 0xffffff), 2);
+    const iris = scene.add.circle(sx * 14 + 2, -126, 6, 0x274060);
+    const core = scene.add.circle(sx * 14 + 2, -126, 2.6, 0x0f172a);
+    parts.push(white, iris, core);
+    pupils.push(white, iris, core);
+    parts.push(scene.add.circle(sx * 14, -131, 2.4, 0xffffff));
+    parts.push(scene.add.rectangle(sx * 14, -141, 15, 5, 0x4a2f18).setAngle(sx * -6));
+  }
+  // open happy smile + blush
+  parts.push(out(scene.add.ellipse(0, -110, 22, 14, 0x7c2d12), 2));
+  parts.push(scene.add.ellipse(0, -107, 12, 6, 0xf87171));
+  parts.push(scene.add.circle(-22, -116, 5, 0xf9a8d4, 0.8));
+  parts.push(scene.add.circle(22, -116, 5, 0xf9a8d4, 0.8));
   const root = scene.add.container(0, 0, parts);
   root.setData('armR', armR);
   root.setData('hero', 'jackson');
+  root.setData('pupils', pupils);
   return root;
 }
 
@@ -112,10 +136,19 @@ export function makeLayla(scene: Phaser.Scene, opts?: { wings?: boolean }): Phas
   ]);
   // head
   const head = sticker(scene.add.circle(0, -112, 24, 0xfcd9a8));
-  const eyeL = sticker(scene.add.circle(-9, -114, 5, 0x1f2937), 2);
-  const eyeR = sticker(scene.add.circle(9, -114, 5, 0x1f2937), 2);
-  const glintL = scene.add.circle(-8, -115, 2, 0xffffff);
-  const glintR = scene.add.circle(10, -115, 2, 0xffffff);
+  // big glossy fairy eyes (whites + irises registered for blinking)
+  const pupils: Phaser.GameObjects.GameObject[] = [];
+  for (const sx of [-1, 1]) {
+    const white = sticker(scene.add.ellipse(sx * 10, -114, 14, 17, 0xffffff), 2);
+    const iris = scene.add.circle(sx * 10 + 1, -113, 5, 0x7c3aed);
+    const core = scene.add.circle(sx * 10 + 1, -113, 2.2, 0x1f2937);
+    const glint = scene.add.circle(sx * 10, -116, 2, 0xffffff);
+    parts.push(white, iris, core, glint);
+    pupils.push(white, iris, core, glint);
+  }
+  // lashes
+  parts.push(scene.add.rectangle(-17, -122, 9, 3, 0x4a2f18).setAngle(-18));
+  parts.push(scene.add.rectangle(17, -122, 9, 3, 0x4a2f18).setAngle(18));
   const cheekL = scene.add.circle(-16, -106, 5, 0xf9a8d4);
   const cheekR = scene.add.circle(16, -106, 5, 0xf9a8d4);
   const smile = scene.add.circle(0, -104, 6, 0x9d174d);
@@ -138,20 +171,23 @@ export function makeLayla(scene: Phaser.Scene, opts?: { wings?: boolean }): Phas
   const cg2 = scene.add.circle(0, -140, 4, 0x38bdf8);
   const cg3 = scene.add.circle(10, -137, 4, 0x22c55e);
   parts.push(hairBack, bootL, bootR, bowL, bowR, skirtBack, skirt, hem1, hem2, hem3,
-    bodice, sash, gem, sleeveL, armL, armR, head, eyeL, eyeR, glintL, glintR,
+    bodice, sash, gem, sleeveL, armL, armR, head,
     cheekL, cheekR, smile, hairL, hairR, fringe, tieL, tieR, crown, cg1, cg2, cg3);
-  if (opts?.wings) {
+  // fairy wings are part of Layla's heroic silhouette (visual only, no flight change)
+  {
     const wingL = scene.add.ellipse(-36, -84, 26, 46, 0xc4b5fd, 0.9).setStrokeStyle(3, OUTLINE).setAngle(-18);
     const wingR = scene.add.ellipse(36, -84, 26, 46, 0xc4b5fd, 0.9).setStrokeStyle(3, OUTLINE).setAngle(18);
     const sparkL = scene.add.circle(-40, -100, 4, 0xffffff, 0.9);
     const sparkR = scene.add.circle(40, -100, 4, 0xffffff, 0.9);
     parts.unshift(wingL, wingR, sparkL, sparkR);
     scene.tweens.add({ targets: [wingL, wingR], scaleX: 0.72, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    void opts;
   }
   const root = scene.add.container(0, 0, parts);
   root.setData('armR', armR);
   root.setData('wandStar', wandStar);
   root.setData('hero', 'layla');
+  root.setData('pupils', pupils);
   // crown shimmer
   scene.tweens.add({ targets: crown, y: -2, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   return root;
@@ -161,9 +197,18 @@ export function makeHero(scene: Phaser.Scene, hero: 'jackson' | 'layla'): Phaser
   return hero === 'jackson' ? makeJackson(scene) : makeLayla(scene);
 }
 
-/** Gentle idle bob. Safe to call once per hero root. */
+/** Gentle idle bob + periodic eye blink (pupils registered via setData). Safe to call once per hero root. */
 export function heroIdle(scene: Phaser.Scene, root: Phaser.GameObjects.Container, amp = 6): void {
   scene.tweens.add({ targets: root, y: `-=${amp}`, duration: 850 + Math.random() * 250, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  const pupils = root.getData('pupils') as Phaser.GameObjects.GameObject[] | undefined;
+  if (!pupils || pupils.length === 0) return;
+  const blink = (): void => {
+    scene.tweens.add({
+      targets: pupils, scaleY: 0.12, duration: 70, yoyo: true, hold: 60,
+      onComplete: () => scene.time.delayedCall(2000 + Math.random() * 2200, blink)
+    });
+  };
+  scene.time.delayedCall(1200 + Math.random() * 1500, blink);
 }
 
 /** Face travel direction (pickaxe/wand side leads). Preserves base scale. */
@@ -1103,14 +1148,15 @@ export function makeWallBanner(
   return scene.add.container(0, 0, parts);
 }
 
-/** Soft vignette overlay to focus the middle of the screen. */
-export function makeVignette(scene: Phaser.Scene, strength = 0.42): Phaser.GameObjects.Graphics {
-  const W = scene.scale.width, H = scene.scale.height;
-  const g = scene.add.graphics().setScrollFactor(0).setDepth(60);
-  g.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0, 0);
-  // fake vignette: dark translucent frame (4 gradient bars via alpha rects)
-  g.fillStyle(0x0b0620, strength);
-  const t = 90;
-  g.fillRect(0, 0, W, t); g.fillRect(0, H - t, W, t); g.fillRect(0, 0, t, H); g.fillRect(W - t, 0, t, H);
-  return g;
+/** Camera vignette via WebGL postFX (replaces the old graphics-bar overlay).
+ *  Safe to call on every scene (re)start: clears stale pipelines first. */
+export function makeVignette(scene: Phaser.Scene, strength = 0.42): void {
+  try {
+    const fx = scene.cameras.main.postFX;
+    if (!fx) return;
+    fx.clear();
+    fx.addVignette(0.5, 0.5, 0.62, Math.min(0.9, strength + 0.06));
+  } catch {
+    /* non-WebGL fallback: no vignette */
+  }
 }

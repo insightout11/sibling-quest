@@ -9,7 +9,7 @@ import {
   makeMapTable, makeTreasureShelf, makeStoneDoor, makePortalMachine, makePad,
   makeWallBanner, heroIdle, heroFace
 } from './art';
-import { makePrompt, dustMotes } from './fx';
+import { makePrompt, dustMotes, addGlow, addShadow, addRoomDarkness } from './fx';
 import { makeVignette } from './art';
 import { createTouchUI, type PadState } from './ui';
 import { audio } from '../core/audioQueue';
@@ -18,6 +18,8 @@ export class UndergroundScene extends Phaser.Scene {
   private pad: PadState = { mx: 0, my: 0, action: false, build: false, magic: false };
   private hero!: Phaser.GameObjects.Container;
   private buddy!: Phaser.GameObjects.Container;
+  private heroShadow!: Phaser.GameObjects.Image;
+  private buddyShadow!: Phaser.GameObjects.Image;
   private buddyPos = { x: 0, y: 0 };
   private heroTag!: Phaser.GameObjects.Container;
   private buddyTag!: Phaser.GameObjects.Container;
@@ -115,11 +117,15 @@ export class UndergroundScene extends Phaser.Scene {
     this.hero = makeHero(this, c.hero);
     this.hero.setPosition(W / 2 - 160, H - 120);
     this.hero.setScale(1.28).setData('scl', 1.28);
+    this.hero.setDepth(46); // above the mood darkness overlay
     this.buddy = makeHero(this, c.hero === 'jackson' ? 'layla' : 'jackson');
     this.buddyPos = { x: W / 2 + 160, y: H - 120 };
     this.buddy.setPosition(this.buddyPos.x, this.buddyPos.y).setAlpha(0.6);
     this.buddy.setScale(1.28).setData('scl', 1.28);
+    this.buddy.setDepth(46);
     heroIdle(this, this.hero);
+    this.heroShadow = addShadow(this, this.hero.x, this.hero.y - 2, 130);
+    this.buddyShadow = addShadow(this, this.buddy.x, this.buddy.y - 2, 130);
     this.heroTag = makePrompt(this, this.hero.x, this.hero.y - 218,
       c.hero === 'jackson' ? 'Jackson • YOU' : 'Layla • YOU',
       { bg: c.hero === 'jackson' ? 0xb45309 : 0xbe185d, fontSize: '19px', pulse: false });
@@ -131,6 +137,14 @@ export class UndergroundScene extends Phaser.Scene {
       c.hero === 'jackson' ? 'Jackson: STAND HERE' : "Jackson's pad").setDepth(-4);
     makePad(this, W / 2 + 110, H / 2 + 150, 0xec4899, 'heart',
       c.hero === 'layla' ? 'Layla: STAND HERE' : "Layla's pad").setDepth(-4);
+
+    // WebGL mood: cool darkness below the actors, additive light on sources
+    addRoomDarkness(this, 0x0b1026, 0.22, 44);
+    addGlow(this, px, py, { scale: 5, color: 0x7c3aed, alpha: 0.55, depth: 43 });
+    addGlow(this, 120, H - 150, { scale: 3, color: 0x22d3ee, alpha: 0.45, depth: 43 });
+    addGlow(this, W - 120, H - 220, { scale: 2.6, color: 0xa78bfa, alpha: 0.45, depth: 43 });
+    addGlow(this, W / 2 - 320, 108, { scale: 1.8, color: 0xf59e0b, alpha: 0.5, depth: 43 });
+    addGlow(this, W / 2 + 320, 108, { scale: 1.8, color: 0xf59e0b, alpha: 0.5, depth: 43 });
 
     this.setHint(c.hero === 'jackson' ? 'Stand on YOUR brown pad, together with Layla!' : 'Stand on YOUR pink pad, together with Jackson!');
     audio.say('portal-need', 'The candy portal needs both heroes! Stand together!', { urgent: true, for: c.hero });
@@ -193,11 +207,12 @@ export class UndergroundScene extends Phaser.Scene {
     this.hero.x = Phaser.Math.Clamp(this.hero.x + this.pad.mx * speed * dtS, 40, W - 40);
     this.hero.y = Phaser.Math.Clamp(this.hero.y + this.pad.my * speed * dtS, 140, H - 100);
     heroFace(this.hero, this.pad.mx);
-    heroFace(this.hero, this.pad.mx);
     this.buddy.x += (this.buddyPos.x - this.buddy.x) * 0.15;
     this.buddy.y += (this.buddyPos.y - this.buddy.y) * 0.15;
     this.heroTag.setPosition(this.hero.x, this.hero.y - 218);
     this.buddyTag.setPosition(this.buddy.x, this.buddy.y - 218);
+    this.heroShadow.setPosition(this.hero.x, this.hero.y - 2);
+    this.buddyShadow.setPosition(this.buddy.x, this.buddy.y - 2);
     c.patch(c.hero === 'jackson' ? { jacksonPos: { x: this.hero.x, y: this.hero.y } } : { laylaPos: { x: this.hero.x, y: this.hero.y } });
 
     const padJ = { x: W / 2 - 110, y: H / 2 + 150 };

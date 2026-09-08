@@ -9,7 +9,7 @@ import {
   makeLeafPlant, makeBookshelf, heroIdle, heroFace, sticker
 } from './art';
 import { makePrompt } from './fx';
-import { dustMotes } from './fx';
+import { dustMotes, addGlow, addShadow } from './fx';
 import { makeVignette } from './art';
 import { createTouchUI, type PadState } from './ui';
 import { sharedStarsTotal } from '../core/roomState';
@@ -20,6 +20,8 @@ export class TreehouseScene extends Phaser.Scene {
   private hero!: Phaser.GameObjects.Container;
   private buddy!: Phaser.GameObjects.Container;
   private buddyTag!: Phaser.GameObjects.Container;
+  private heroShadow!: Phaser.GameObjects.Image;
+  private buddyShadow!: Phaser.GameObjects.Image;
   private heroTag!: Phaser.GameObjects.Container;
   private petsText!: Phaser.GameObjects.Text;
   private elapsed = 0;
@@ -34,7 +36,7 @@ export class TreehouseScene extends Phaser.Scene {
 
     // ---- backdrop: warm hollow + trunk walls ----
     this.cameras.main.setBackgroundColor('#241610');
-    this.add.rectangle(W / 2, H / 2, W, H, 0x2e1e12);
+    this.add.rectangle(W / 2, H / 2, W, H, 0x2e1e12).setDepth(-11);
     makeTrunkWall(this, 48, H / 2, 110, H);
     makeTrunkWall(this, W - 48, H / 2, 110, H);
     // leaf canopy peeking over the top
@@ -116,6 +118,9 @@ export class TreehouseScene extends Phaser.Scene {
     this.buddy.setPosition(W / 2 + 120, H - 130).setAlpha(0.6);
     this.buddy.setScale(1.28).setData('scl', 1.28);
     heroIdle(this, this.hero);
+    // grounding contact shadows (repositioned each frame below)
+    this.heroShadow = addShadow(this, this.hero.x, this.hero.y - 2, 130);
+    this.buddyShadow = addShadow(this, this.buddy.x, this.buddy.y - 2, 130);
     // name pills that follow each hero
     this.heroTag = makePrompt(this, this.hero.x, this.hero.y - 215,
       c.hero === 'jackson' ? 'Jackson • YOU' : 'Layla • YOU',
@@ -144,6 +149,11 @@ export class TreehouseScene extends Phaser.Scene {
     touch.setContextAvailable(false);
 
     dustMotes(this, W / 2, H / 2, W - 200, H - 200);
+    // warm light overlays: lamps, moon window, trapdoor leak
+    addGlow(this, W / 2 - 250, 150, { scale: 3.2, color: 0xffd97a, alpha: 0.5, depth: 6 });
+    addGlow(this, W / 2 + 250, 140, { scale: 2.8, color: 0xffd97a, alpha: 0.5, depth: 6 });
+    addGlow(this, W / 2, 228, { scale: 4.5, color: 0xbfe6ff, alpha: 0.35, depth: 5 });
+    addGlow(this, W / 2, H - 180, { scale: 4, color: 0xffb84d, alpha: 0.4, depth: 6 });
     makeVignette(this);
 
     c.transport.onState((patch) => {
@@ -176,6 +186,8 @@ export class TreehouseScene extends Phaser.Scene {
     heroFace(this.hero, this.pad.mx);
     this.buddyTag.setPosition(this.buddy.x, this.buddy.y - 215);
     this.heroTag.setPosition(this.hero.x, this.hero.y - 215);
+    this.heroShadow.setPosition(this.hero.x, this.hero.y - 2);
+    this.buddyShadow.setPosition(this.buddy.x, this.buddy.y - 2);
     c.patch(c.hero === 'jackson' ? { jacksonPos: { x: this.hero.x, y: this.hero.y } } : { laylaPos: { x: this.hero.x, y: this.hero.y } });
 
     if (!this.alarmRang && this.elapsed > 35) {

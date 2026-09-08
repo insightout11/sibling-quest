@@ -16,7 +16,7 @@ import {
 } from './art';
 import {
   burst as fxBurst, ringPulse, magicBolt, rainbowSweep, fanfareRays, gateBeam, killBeam,
-  hearts, poofs, makePrompt, ensureFxTextures
+  hearts, poofs, makePrompt, ensureFxTextures, addShadow, addGlow
 } from './fx';
 import { createTouchUI, type PadState, type TouchHandle } from './ui';
 import { audio } from '../core/audioQueue';
@@ -46,6 +46,8 @@ export class CandyKingdomScene extends Phaser.Scene {
   private pad: PadState = { mx: 0, my: 0, action: false, build: false, magic: false };
   private hero!: Phaser.GameObjects.Container;
   private buddy!: Phaser.GameObjects.Container;
+  private heroShadow!: Phaser.GameObjects.Image;
+  private buddyShadow!: Phaser.GameObjects.Image;
   private buddyPos = { x: 300, y: 460 };
   private prevBuddyX = 0;
   private jellies = new Map<string, { fig: JellyFigure; x: number; vx: number; hitCd: number; pips: Phaser.GameObjects.Arc[] }>();
@@ -71,8 +73,10 @@ export class CandyKingdomScene extends Phaser.Scene {
   private marker!: Phaser.GameObjects.Star;
   private markerGlow!: Phaser.GameObjects.Arc;
   private rainbowArc!: Phaser.GameObjects.Container;
-  private hillsFar!: Phaser.GameObjects.Container;
-  private hillsNear!: Phaser.GameObjects.Container;
+  private hillFarTile: Phaser.GameObjects.TileSprite | null = null;
+  private hillNearTile: Phaser.GameObjects.TileSprite | null = null;
+  private castleFig: Phaser.GameObjects.Container | null = null;
+  private hillGrey = true;
   private powerText!: Phaser.GameObjects.Text;
   private powerBar!: Phaser.GameObjects.Rectangle;
   private stageText!: Phaser.GameObjects.Text;
@@ -122,20 +126,20 @@ export class CandyKingdomScene extends Phaser.Scene {
     const grey = this.lastGrey;
     this.cameras.main.setBackgroundColor(grey ? '#5b6472' : '#7dd3fc');
 
-    // ---- parallax sky hills (follow camera at reduced rate) ----
-    this.hillsFar = this.buildHills(SW, H, 0.5, grey ? 0x8a8f99 : 0xa5c8f0, 150);
-    this.hillsNear = this.buildHills(SW, H, 0.8, grey ? 0x7a7f8a : 0x86b8ec, 90);
-    this.hillsFar.setScrollFactor(0).setDepth(-10);
-    this.hillsNear.setScrollFactor(0).setDepth(-9);
+    // ---- baked tileSprite parallax hills (asset-based 2.5D layers) ----
+    // Hill strips are baked once per palette into textures and scrolled via
+    // tilePositionX — GPU-cheap on tablets, seamless by construction.
+    this.hillGrey = grey;
+    this.bakeHillTiles(grey);
     // sun / moon in the far layer
     const orb = this.add.circle(SW - 160, 110, 44, grey ? 0xfef08a : 0xfde047).setScrollFactor(0).setDepth(-10);
     orb.setStrokeStyle(6, 0xffffff, 0.8);
     this.painters.push((g) => orb.setFillStyle(g ? 0xfef08a : 0xfde047));
     // grey castle silhouette looming over the unrestored hills (gone on restore)
     const castle = makeGreyCastle(this);
-    castle.setPosition(260, H - 240).setDepth(-9);
+    castle.setPosition(260, H - 240).setScrollFactor(0).setDepth(-9);
     castle.setVisible(grey);
-    this.hillsFar.add(castle);
+    this.castleFig = castle;
     this.painters.push((g) => castle.setVisible(g));
 
     // marshmallow clouds (world-fixed, drifting)
@@ -275,6 +279,7 @@ export class CandyKingdomScene extends Phaser.Scene {
     this.add.ellipse(1280, H - 300, 100, 140, 0xfef08a, 0.22).setDepth(-4);
     this.starFig = makeStar(this);
     this.starFig.setPosition(1280, H - 320).setScale(1.2);
+    try { this.starFig.postFX?.addGlow(0xfacc15, 0.25, 6); } catch { /* WebGL-only garnish */ }
     this.tweens.add({ targets: this.starFig, y: H - 342, duration: 800, yoyo: true, repeat: -1 });
 
     // ---- unicorn cage: chunky bars, big lock, straw bed ----
@@ -331,6 +336,8 @@ export class CandyKingdomScene extends Phaser.Scene {
     this.buddy.setPosition(this.buddyPos.x, this.buddyPos.y).setAlpha(0.65);
     this.prevBuddyX = this.buddyPos.x;
     heroIdle(this, this.hero);
+    this.heroShadow = addShadow(this, this.hero.x, this.hero.y - 2, 120);
+    this.buddyShadow = addShadow(this, this.buddy.x, this.buddy.y - 2, 120);
     // Layla's rainbow sparkle trail (follows whichever body is Layla)
     ensureFxTextures(this);
     const laylaFig = c.hero === 'layla' ? this.hero : this.buddy;
@@ -410,22 +417,54 @@ export class CandyKingdomScene extends Phaser.Scene {
     this.renderAll();
   }
 
-  private buildHills(SW: number, H: number, _f: number, color: number, h: number): Phaser.GameObjects.Container {
-    void _f;
-    const parts: Phaser.GameObjects.GameObject[] = [];
-    for (let i = 0; i < 8; i++) {
-      parts.push(this.add.ellipse(-300 + i * 260, H - 90 - h / 2, 340, h + (i % 3) * 36, color));
-    }
-    return this.add.container(0, 0, parts);
-  }
-
   // ================= canonical rendering =================
 
   private stage(): number { return getCtx().shared.stageId; }
 
   /** Repaint the whole world grey <-> colour (no fanfare; enterStage adds drama). */
+  /** Bake seamless hill strips to textures, one tileSprite per depth layer.
+   *  Spacing divides the strip exactly and no hill crosses an edge, so
+   *  horizontal tiling is seamless by construction. */
+  private bakeHillTiles(grey: boolean): void {
+    this.hillFarTile?.destroy();
+    this.hillNearTile?.destroy();
+    this.hillFarTile = null;
+    this.hillNearTile = null;
+    for (const k of ['hill-strip-far', 'hill-strip-near']) {
+      if (this.textures.exists(k)) this.textures.remove(k);
+    }
+    const SW = this.scale.width, H = 600;
+    const stripW = SW + 560, bandH = 250;
+    const bake = (key: string, color: number, h: number, seed: number): void => {
+      const c = this.add.container(0, 0);
+      const n = 6, spacing = stripW / n;
+      for (let i = 0; i < n; i++) {
+        const x = spacing / 2 + i * spacing;
+        const hh = h + ((i * 53 + seed) % 70);
+        const y = bandH - 30 - hh / 2 + ((i * 29 + seed) % 24);
+        c.add(this.add.ellipse(x, y, 300, hh, color));
+      }
+      const rt = this.add.renderTexture(0, 0, stripW, bandH);
+      rt.draw(c);
+      rt.saveTexture(key);
+      rt.destroy();
+      c.destroy(true);
+    };
+    bake('hill-strip-far', grey ? 0x8a8f99 : 0xa5c8f0, 150, 7);
+    bake('hill-strip-near', grey ? 0x7a7f8a : 0x86b8ec, 90, 21);
+    this.hillFarTile = this.add.tileSprite(0, H - 290, stripW, bandH, 'hill-strip-far')
+      .setOrigin(0, 0).setScrollFactor(0).setDepth(-10);
+    this.hillNearTile = this.add.tileSprite(0, H - 230, stripW, bandH, 'hill-strip-near')
+      .setOrigin(0, 0).setScrollFactor(0).setDepth(-9);
+  }
+
   private paintWorld(grey: boolean, _animate = false): void {
     for (const p of this.painters) p(grey);
+    if (grey !== this.hillGrey) {
+      // rebake parallax strips in the new palette (also fixes hills going stale)
+      this.hillGrey = grey;
+      this.bakeHillTiles(grey);
+    }
     this.cameras.main.setBackgroundColor(grey ? '#5b6472' : '#7dd3fc');
     this.rainbowArc.setVisible(!grey);
   }
@@ -669,6 +708,7 @@ export class CandyKingdomScene extends Phaser.Scene {
     audio.say(`crown-${id}`, 'A piece of the Night Rainbow Crown! You are heroes!', { hostOnly: true });
     const crown = makeCrownPiece(this);
     crown.setPosition(this.hero.x, this.hero.y - 130).setScale(1.3);
+    try { crown.postFX?.addGlow(0xfacc15, 0.3, 8); } catch { /* WebGL-only garnish */ }
     fanfareRays(this, this.hero.x, this.hero.y - 130, true);
     // camera punch-in for the reward moment, then ease back
     this.cameras.main.zoomTo(CAM_ZOOM + 0.28, 260);
@@ -1135,10 +1175,13 @@ export class CandyKingdomScene extends Phaser.Scene {
     this.prevBuddyX = this.buddy.x;
     const tag = this.buddy.getData('tag') as Phaser.GameObjects.Container | undefined;
     tag?.setPosition(this.buddy.x, this.buddy.y - 205);
-    // parallax hills drift against the camera
+    this.heroShadow.setPosition(this.hero.x, this.hero.y - 2);
+    this.buddyShadow.setPosition(this.buddy.x, this.buddy.y - 2);
+    // baked tileSprite parallax scrolls against the camera
     const sx = this.cameras.main.scrollX;
-    this.hillsFar.x = -sx * 0.22;
-    this.hillsNear.x = -sx * 0.45;
+    if (this.hillFarTile) this.hillFarTile.tilePositionX = sx * 0.22;
+    if (this.hillNearTile) this.hillNearTile.tilePositionX = sx * 0.45;
+    if (this.castleFig) this.castleFig.x = 260 - sx * 0.22;
     // freed unicorn follows Layla
     if (this.unicornFree) {
       const layla = c.hero === 'layla' ? this.hero : this.buddy;

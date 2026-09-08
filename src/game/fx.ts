@@ -68,6 +68,7 @@ export function burst(
     gravityY: opts.gravity ?? 160
   });
   e.setDepth(90);
+  e.setBlendMode(Phaser.BlendModes.ADD);
   if (opts.colors) e.setParticleTint(opts.colors);
   e.explode(opts.count ?? 14, x, y);
   scene.time.delayedCall((opts.lifespan ?? 650) + 150, () => e.destroy());
@@ -94,11 +95,13 @@ export function magicBolt(
 ): void {
   ensureFxTextures(scene);
   const glow = scene.add.image(x1, y1, 'fx-glow').setTint(color).setScale(1.4).setDepth(89);
+  glow.setBlendMode(Phaser.BlendModes.ADD);
   const bolt = scene.add.image(x1, y1, 'fx-star').setTint(color).setScale(1.2).setDepth(90);
   const trail = scene.add.particles(0, 0, 'fx-spark', {
     speed: 30, lifespan: 350, scale: { start: 0.9, end: 0 }, quantity: 2, frequency: 30
   });
   trail.setDepth(89);
+  trail.setBlendMode(Phaser.BlendModes.ADD);
   trail.startFollow(bolt);
   scene.tweens.add({
     targets: [bolt, glow], x: x2, y: y2, duration: 320, ease: 'Quad.easeIn',
@@ -130,6 +133,7 @@ export function rainbowSweep(scene: Phaser.Scene, x: number, y: number, w: numbe
 export function fanfareRays(scene: Phaser.Scene, x: number, y: number, big = true): void {
   ensureFxTextures(scene);
   const glow = scene.add.image(x, y, 'fx-glow').setScale(0.5).setDepth(88).setTint(0xfef08a);
+  glow.setBlendMode(Phaser.BlendModes.ADD);
   scene.tweens.add({ targets: glow, scale: 4, alpha: 0, duration: 800, onComplete: () => glow.destroy() });
   const rays = 8;
   for (let i = 0; i < rays; i++) {
@@ -146,6 +150,7 @@ export function fanfareRays(scene: Phaser.Scene, x: number, y: number, big = tru
     quantity: big ? 26 : 14, emitting: false, gravityY: 60
   });
   e.setDepth(90);
+  e.setBlendMode(Phaser.BlendModes.ADD);
   e.setParticleTint([0xfacc15, 0xf472b6, 0x7dd3fc, 0xffffff]);
   e.explode(big ? 26 : 14, x, y);
   scene.time.delayedCall(1300, () => e.destroy());
@@ -177,6 +182,7 @@ export function hearts(scene: Phaser.Scene, x: number, y: number, count = 12): v
     lifespan: 1300, scale: { start: 1, end: 0.2 }, quantity: count, emitting: false, gravityY: -60
   });
   e.setDepth(90);
+  e.setBlendMode(Phaser.BlendModes.ADD);
   e.explode(count, x, y);
   scene.time.delayedCall(1500, () => e.destroy());
 }
@@ -205,7 +211,111 @@ export function dustMotes(scene: Phaser.Scene, x: number, y: number, w: number, 
     quantity: 1, frequency: 420
   });
   e.setDepth(5);
+  e.setBlendMode(Phaser.BlendModes.ADD);
   e.setParticleTint(tint);
+}
+
+/** True radial-gradient light textures via CanvasTexture (WebGL-tinted).
+ *  Graphics.fillGradientStyle is linear-only, so glows need the canvas API. */
+export function ensureLightTextures(scene: Phaser.Scene): void {
+  if (scene.textures.exists('tex-glow-soft')) return;
+  const make = (
+    key: string, w: number, h: number,
+    paint: (ctx: CanvasRenderingContext2D) => void
+  ): void => {
+    const tex = scene.textures.createCanvas(key, w, h);
+    if (!tex) return;
+    const ctx = tex.getContext();
+    ctx.clearRect(0, 0, w, h);
+    paint(ctx);
+    tex.refresh();
+  };
+  // soft white radial glow (tintable to any light colour)
+  make('tex-glow-soft', 128, 128, (ctx) => {
+    const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 64);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.35, 'rgba(255,255,255,0.5)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 128, 128);
+  });
+  // dark contact shadow blob
+  make('tex-shadow', 128, 128, (ctx) => {
+    const g = ctx.createRadialGradient(64, 64, 6, 64, 64, 62);
+    g.addColorStop(0, 'rgba(10,5,20,0.55)');
+    g.addColorStop(0.7, 'rgba(10,5,20,0.28)');
+    g.addColorStop(1, 'rgba(10,5,20,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 128, 128);
+  });
+  // vertical light shaft, bright top fading down
+  make('tex-shaft', 64, 256, (ctx) => {
+    const g = ctx.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0, 'rgba(255,255,255,0.55)');
+    g.addColorStop(0.6, 'rgba(255,255,255,0.16)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 64, 256);
+  });
+}
+
+export interface GlowOpts {
+  scale?: number;
+  color?: number;
+  alpha?: number;
+  depth?: number;
+}
+
+/** Additive light glow sprite (WebGL bloom-style overlay). */
+export function addGlow(
+  scene: Phaser.Scene, x: number, y: number, opts: GlowOpts = {}
+): Phaser.GameObjects.Image {
+  ensureLightTextures(scene);
+  const img = scene.add.image(x, y, 'tex-glow-soft');
+  img.setBlendMode(Phaser.BlendModes.ADD);
+  img.setScale(opts.scale ?? 2);
+  if (opts.color !== undefined) img.setTint(opts.color);
+  img.setAlpha(opts.alpha ?? 0.55);
+  img.setDepth(opts.depth ?? 40);
+  return img;
+}
+
+/** Soft contact shadow blob. Caller repositions it each frame near its target. */
+export function addShadow(
+  scene: Phaser.Scene, x: number, y: number, w = 110, alpha = 0.5
+): Phaser.GameObjects.Image {
+  ensureLightTextures(scene);
+  const img = scene.add.image(x, y, 'tex-shadow');
+  img.setDisplaySize(w, w * 0.36);
+  img.setAlpha(alpha);
+  img.setDepth(-1);
+  return img;
+}
+
+/** Slanted light shaft (windows, portal beams, gate light). */
+export function addShaft(
+  scene: Phaser.Scene, x: number, y: number, w: number, h: number,
+  color = 0xfff2c4, alpha = 0.5, angle = 0, depth = 6
+): Phaser.GameObjects.Image {
+  ensureLightTextures(scene);
+  const img = scene.add.image(x, y, 'tex-shaft');
+  img.setDisplaySize(w, h);
+  img.setBlendMode(Phaser.BlendModes.ADD);
+  img.setTint(color);
+  img.setAlpha(alpha);
+  img.setAngle(angle);
+  img.setDepth(depth);
+  return img;
+}
+
+/** Fullscreen mood darkness (scroll-fixed). Glows/lights sit above it. */
+export function addRoomDarkness(
+  scene: Phaser.Scene, color = 0x0b1026, alpha = 0.24, depth = 45
+): Phaser.GameObjects.Rectangle {
+  const W = scene.scale.width, H = scene.scale.height;
+  return scene.add.rectangle(W / 2, H / 2, W, H, color, alpha)
+    .setScrollFactor(0)
+    .setDepth(depth);
 }
 
 /** World-space prompt pill near the action (icon dot + short text). */

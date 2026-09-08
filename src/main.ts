@@ -355,7 +355,8 @@ async function startGame(roomCode: string, heroId: HeroId): Promise<void> {
   window.addEventListener('offline', () => { netStatus.textContent = '📶 reconnecting… keep playing!'; });
 
   const game = new Phaser.Game({
-    type: Phaser.AUTO,
+    type: Phaser.WEBGL,
+    powerPreference: 'high-performance',
     parent: 'game-root',
     backgroundColor: '#1a1033',
     scale: {

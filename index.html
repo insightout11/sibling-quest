@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#7c3aed" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Sibling Quest</title>
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+</head>
+<body>
+  <div id="app">
+    <!-- Session / hero select overlay (DOM, big touch targets, minimal text) -->
+    <div id="session-ui">
+      <h1>🌈 Sibling Quest</h1>
+      <p id="session-subtitle">Our game — Jackson + Layla</p>
+      <div class="row">
+        <button id="btn-create">🏰 CREATE ADVENTURE</button>
+        <button id="btn-join">🚪 JOIN ADVENTURE</button>
+      </div>
+      <div class="row">
+        <button id="btn-continue" hidden>💛 CONTINUE ADVENTURE</button>
+      </div>
+      <div class="row" id="join-row" hidden>
+        <input id="room-input" inputmode="numeric" maxlength="4" placeholder="4821" aria-label="Room code" />
+        <button id="btn-join-go">GO ➜</button>
+      </div>
+      <div id="room-display" hidden>Room: <b id="room-code">----</b></div>
+      <div class="row" id="hero-row" hidden>
+        <button id="btn-jackson">🟫 Jackson<br/><small>build + fight</small></button>
+        <button id="btn-layla">👑 Layla<br/><small>magic + heal</small></button>
+      </div>
+      <button id="btn-start" hidden>▶ START ▶</button>
+      <p id="lobby-status"></p>
+      <p id="net-status">📶 starting…</p>
+    </div>
+    <div id="game-root"></div>
+    <!-- Hidden parent debug corner -->
+    <div id="debug-corner" title="hold for parent menu"></div>
+    <div id="debug-menu" hidden></div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

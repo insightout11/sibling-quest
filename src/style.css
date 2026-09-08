@@ -1,0 +1,36 @@
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; height: 100%; background: #1a1033; overflow: hidden;
+  font-family: system-ui, 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+  overscroll-behavior: none; touch-action: none; user-select: none; -webkit-user-select: none; }
+#app { position: fixed; inset: 0; }
+#game-root, #game-root canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+#session-ui { position: absolute; z-index: 20; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px; text-align: center;
+  background: radial-gradient(circle at 50% 30%, #4c1d95 0%, #1a1033 70%);
+  color: #fff; padding: 20px; transition: opacity .4s; }
+#session-ui.done { opacity: 0; pointer-events: none; }
+#session-ui h1 { font-size: clamp(34px, 7vw, 64px); margin: 0; text-shadow: 0 4px 0 #6b21a8; }
+#session-subtitle { opacity: .85; margin: 0; font-size: clamp(14px, 2.6vw, 20px); }
+.row { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+button { font-family: inherit; font-size: clamp(18px, 3.2vw, 26px); font-weight: 800;
+  padding: 16px 26px; border-radius: 22px; border: 4px solid #fff3;
+  background: linear-gradient(#a855f7, #7c3aed); color: #fff; min-width: 200px; min-height: 72px;
+  cursor: pointer; box-shadow: 0 6px 0 #4c1d95; }
+button:active { transform: translateY(4px); box-shadow: 0 2px 0 #4c1d95; }
+#btn-jackson { background: linear-gradient(#d97706, #92400e); box-shadow: 0 6px 0 #451a03; }
+#btn-layla { background: linear-gradient(#ec4899, #9d174d); box-shadow: 0 6px 0 #500f28; }
+#btn-start { background: linear-gradient(#22c55e, #15803d); box-shadow: 0 6px 0 #14532d; }
+#room-input { font-size: 40px; width: 160px; text-align: center; border-radius: 18px; border: 4px solid #a855f7; padding: 8px; }
+#room-display { font-size: 26px; background: #0008; padding: 8px 22px; border-radius: 16px; }
+#net-status { font-size: 15px; opacity: .8; background: #0007; padding: 6px 14px; border-radius: 12px; }
+#debug-corner { position: absolute; z-index: 40; left: 0; bottom: 0; width: 64px; height: 64px; opacity: 0; }
+#debug-menu { position: absolute; z-index: 41; left: 8px; bottom: 8px; background: #111c; color: #fff;
+  border-radius: 14px; padding: 12px; font-size: 14px; max-width: 340px; }
+#debug-menu button { font-size: 14px; min-width: 0; min-height: 0; padding: 8px 10px; margin: 3px; }
+.hint-bar { position: absolute; z-index: 15; top: 10px; left: 50%; transform: translateX(-50%);
+  background: #000a; color: #fff; padding: 10px 20px; border-radius: 999px;
+  font-size: clamp(15px, 2.6vw, 22px); font-weight: 700; pointer-events: none; max-width: 92vw; }
+@media (orientation: portrait) {
+  #session-ui::after { content: '🔄 Please rotate to landscape!'; display: block; background: #f59e0b;
+    color: #451a03; font-weight: 800; padding: 10px 18px; border-radius: 14px; }
+}

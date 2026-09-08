@@ -1,0 +1,51 @@
+{
+  "rules": {
+    "rooms": {
+      "$room": {
+        ".read": false,
+        ".write": "!data.exists() && newData.child('meta').child('hostUid').val() == auth.uid && newData.child('members').child(auth.uid).exists()",
+        "meta": {
+          ".read": "auth != null && root.child('rooms').child($room).child('members').child(auth.uid).exists()"
+        },
+        "members": {
+          ".read": "auth != null && root.child('rooms').child($room).exists()",
+          "$uid": {
+            ".read": "auth != null && root.child('rooms').child($room).exists()",
+            ".write": "auth != null && newData.hasChildren(['hero', 'at']) && (newData.child('hero').val() == 'jackson' || newData.child('hero').val() == 'layla') && newData.child('at').isNumber() && (root.child('rooms').child($room).child('members').child(auth.uid).exists() || !root.child('rooms').child($room).exists())",
+            ".validate": "newData.hasChildren(['hero', 'at'])"
+          }
+        },
+        "presence": {
+          ".read": "auth != null && root.child('rooms').child($room).exists()",
+          "$uid": {
+            ".read": "auth != null && root.child('rooms').child($room).exists()",
+            ".write": "auth != null && $uid == auth.uid && (!newData.exists() || (newData.hasChildren(['hero', 'at']) && (newData.child('hero').val() == 'jackson' || newData.child('hero').val() == 'layla')))"
+          }
+        },
+        "joinRequests": {
+          ".read": "auth != null && root.child('rooms').child($room).child('members').child(auth.uid).exists()",
+          "$uid": {
+            ".read": "auth != null && ($uid == auth.uid || root.child('rooms').child($room).child('members').child(auth.uid).exists())",
+            ".write": "auth != null && ((newData.exists() && $uid == auth.uid && newData.hasChildren(['hero', 'at']) && (newData.child('hero').val() == 'jackson' || newData.child('hero').val() == 'layla') && root.child('rooms').child($room).exists()) || (!newData.exists() && root.child('rooms').child($room).child('members').child(auth.uid).exists()))"
+          }
+        },
+        "session": {
+          ".read": "auth != null && root.child('rooms').child($room).child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('rooms').child($room).child('members').child(auth.uid).exists()",
+          ".validate": "newData.hasChildren(['stageId', 'rev'])"
+        },
+        "family": {
+          ".read": "auth != null && root.child('rooms').child($room).child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('rooms').child($room).child('members').child(auth.uid).exists()"
+        },
+        "events": {
+          ".read": "auth != null && root.child('rooms').child($room).child('members').child(auth.uid).exists()",
+          "$ev": {
+            ".read": "auth != null && root.child('rooms').child($room).child('members').child(auth.uid).exists()",
+            ".write": "auth != null && root.child('rooms').child($room).child('members').child(auth.uid).exists() && (!newData.exists() || (newData.hasChildren(['eventId', 'kind', 'hero', 'timestamp']) && newData.child('eventId').isString() && newData.child('timestamp').isNumber()))"
+          }
+        }
+      }
+    }
+  }
+}

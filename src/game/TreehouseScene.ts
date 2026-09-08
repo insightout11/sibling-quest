@@ -1,8 +1,16 @@
-// Treehouse home base (§9): relax, see pets/trophies, then alarm -> underground.
-// Heroes + pets are drawn vector art (art.ts). Presence + snapshot aware.
+// Treehouse home base (§9): a magical shared treehouse interior.
+// Logic unchanged: spawn spots, door trigger, alarm, presence sync.
 import Phaser from 'phaser';
 import { getCtx } from './context';
-import { makeHero, makeUnicorn } from './art';
+import {
+  makeHero, makeUnicorn, makeTrunkWall, makeRoundWindow, makeLamp,
+  makeShelf, makePetCorner, makeToolCorner, makeVanityCorner,
+  makeRopeBridge, makeBunting, makeTrapdoor, makeStringLights,
+  makeLeafPlant, makeBookshelf, heroIdle, heroFace, sticker
+} from './art';
+import { makePrompt } from './fx';
+import { dustMotes } from './fx';
+import { makeVignette } from './art';
 import { createTouchUI, type PadState } from './ui';
 import { sharedStarsTotal } from '../core/roomState';
 import { audio } from '../core/audioQueue';
@@ -12,6 +20,7 @@ export class TreehouseScene extends Phaser.Scene {
   private hero!: Phaser.GameObjects.Container;
   private buddy!: Phaser.GameObjects.Container;
   private buddyTag!: Phaser.GameObjects.Container;
+  private heroTag!: Phaser.GameObjects.Container;
   private petsText!: Phaser.GameObjects.Text;
   private elapsed = 0;
   private alarmRang = false;
@@ -23,52 +32,97 @@ export class TreehouseScene extends Phaser.Scene {
     audio.setState('treehouse');
     const W = this.scale.width, H = this.scale.height;
 
-    // cosy treehouse interior: timber walls, plank floor, round window, pet corner
-    this.cameras.main.setBackgroundColor('#2d1f16');
-    this.add.rectangle(W / 2, 80, W, 160, 0x5b3a1e);
-    for (let i = 0; i < 6; i++) this.add.rectangle(W / 2, 20 + i * 26, W, 3, 0x3f2a14);
-    this.add.rectangle(W / 2, H - 60, W, 160, 0x8b5a2b);
-    for (let i = 0; i < 9; i++) this.add.rectangle(40 + i * ((W - 80) / 8), H - 60, 4, 160, 0x6b4226);
-    // round window with night sky + stars
-    this.add.circle(W - 150, 110, 58, 0x0f172a).setStrokeStyle(10, 0x6b4226);
-    this.add.circle(W - 170, 95, 4, 0xffffff);
-    this.add.circle(W - 130, 120, 3, 0xffffff);
-    this.add.circle(W - 145, 135, 2, 0xfef08a);
-    this.add.circle(W - 165, 125, 14, 0xfef08a, 0.9); // moon
-    // trophy shelf
-    this.add.rectangle(170, 120, 220, 12, 0x6b4226);
-    const crowns = c.save.collections.crownPieces.length;
-    for (let i = 0; i < Math.min(3, crowns); i++) {
-      this.add.triangle(110 + i * 60, 96, 0, 0, -14, 0, 14, 0, 0xfacc15).setStrokeStyle(2, 0xffffff);
+    // ---- backdrop: warm hollow + trunk walls ----
+    this.cameras.main.setBackgroundColor('#241610');
+    this.add.rectangle(W / 2, H / 2, W, H, 0x2e1e12);
+    makeTrunkWall(this, 48, H / 2, 110, H);
+    makeTrunkWall(this, W - 48, H / 2, 110, H);
+    // leaf canopy peeking over the top
+    for (let i = 0; i < 10; i++) {
+      const lx = 60 + (i * (W - 120)) / 9;
+      this.add.circle(lx, -14, 34 + (i % 3) * 10, i % 2 ? 0x2f7a3d : 0x3e9e4f).setDepth(-9);
     }
-    this.add.text(60, 30, 'Treehouse', { fontSize: '30px', color: '#ffe9c4', fontStyle: 'bold' });
+
+    // ---- floor platform ----
+    this.add.rectangle(W / 2, H - 62, W - 150, 150, 0x8b5a2b).setDepth(-5);
+    for (let i = 0; i < 12; i++) {
+      this.add.rectangle(110 + (i * (W - 220)) / 11, H - 62, 5, 150, 0x6b4226).setDepth(-5);
+    }
+    this.add.rectangle(W / 2, H + 6, W - 150, 26, 0x4a2f18).setDepth(-4);
+    // centre rug with crown-star emblem
+    this.add.ellipse(W / 2, H - 70, 300, 84, 0xc94f6d).setDepth(-4).setStrokeStyle(4, 0xffffff, 0.9);
+    this.add.ellipse(W / 2, H - 70, 210, 54, 0xf9a8d4).setDepth(-4);
+    this.add.star(W / 2, H - 70, 5, 10, 24, 0xfacc15).setDepth(-3).setStrokeStyle(3, 0xffffff);
+
+    // ---- rope bridge + bunting + festoon lights across the top ----
+    makeRopeBridge(this, W / 2, 66, W - 260).setDepth(-4);
+    makeBunting(this, W / 2, 150, W - 420).setDepth(-3);
+    makeStringLights(this, 110, 128, W / 2 - 190, 186).setDepth(-3);
+    makeStringLights(this, W / 2 + 190, 186, W - 110, 128).setDepth(-3);
+
+    // ---- big round window: the focal point ----
+    makeRoundWindow(this, W / 2, 228, 78, true).setDepth(-3);
+
+    // ---- hanging sign with live stats ----
+    const signY = 368;
+    this.add.rectangle(W / 2 - 130, 292, 8, 60, 0x4a2f18).setDepth(-3);
+    this.add.rectangle(W / 2 + 130, 292, 8, 60, 0x4a2f18).setDepth(-3);
+    sticker(this.add.rectangle(W / 2, signY, 330, 128, 0x7c4f2c), 4).setDepth(-2);
+    this.add.rectangle(W / 2, signY, 330, 128, 0x8b5a2b, 0).setStrokeStyle(2, 0xa06a35).setDepth(-2);
+    this.add.text(W / 2, signY - 42, 'Jackson & Layla’s Treehouse', { fontSize: '23px', color: '#ffe9c4', fontStyle: 'bold' }).setOrigin(0.5).setDepth(-1);
     const petNames = c.save.pets.length ? c.save.pets.join(', ') : null;
-    this.petsText = this.add.text(60, 64, petNames ? `Pets: ${petNames}` : 'Pet corner is empty… rescue someone!', { fontSize: '18px', color: '#ffd9a0' });
+    this.petsText = this.add.text(W / 2, signY - 8, petNames ? `Pets: ${petNames}` : 'Pet corner is empty… rescue someone!', { fontSize: '17px', color: '#ffd9a0' }).setOrigin(0.5).setDepth(-1);
+    const crowns = c.save.collections.crownPieces.length;
+    if (crowns) {
+      this.add.text(W / 2, signY + 18, `Crown pieces: ${crowns}`, { fontSize: '17px', color: '#fef08a' }).setOrigin(0.5).setDepth(-1);
+    }
+    this.add.text(W / 2, signY + 42, `Stars: ${Math.max(sharedStarsTotal(c.shared), c.save.collections.stars)}`, { fontSize: '17px', color: '#fde047' }).setOrigin(0.5).setDepth(-1);
+
+    // ---- lamps, shelves, corners, plants ----
+    makeLamp(this, W / 2 - 250, 128).setDepth(-2);
+    makeLamp(this, W / 2 + 250, 118, 0.9).setDepth(-2);
+    // warm light pools under the lamps
+    this.add.ellipse(W / 2 - 250, H - 80, 190, 56, 0xffd97a, 0.14).setDepth(-4);
+    this.add.ellipse(W / 2 + 250, H - 80, 190, 56, 0xffd97a, 0.14).setDepth(-4);
+    // moonbeam shaft from the window to the floor
+    this.add.rectangle(W / 2 + 40, 420, 130, 340, 0xbfe6ff, 0.07).setAngle(12).setDepth(-4);
+    makeShelf(this, 215, 315, 250, ['star', 'plush', 'gem', 'cup']).setDepth(-2);
+    makeShelf(this, W - 215, 315, 250, ['cup', 'gem', 'star', 'plush']).setDepth(-2);
+    makeBookshelf(this, W - 200, 560, 220).setDepth(-2);
+    makeLeafPlant(this, 128, H - 130, 1.1).setDepth(-2);
+    makeLeafPlant(this, W - 108, 445, 0.9).setDepth(-2);
+    // framed crown portrait on the left trunk
+    this.add.ellipse(48, 265, 64, 78, 0x8b5a2b).setStrokeStyle(4, 0xfacc15).setDepth(-2);
+    this.add.star(48, 258, 5, 8, 17, 0xfacc15).setDepth(-1);
+    this.add.circle(48, 282, 8, 0xec4899).setDepth(-1);
+    makePetCorner(this, 320, H - 108).setDepth(-3);
     if (c.save.pets.includes('candy-unicorn')) {
       const u = makeUnicorn(this, false);
-      u.setPosition(220, H - 130).setScale(0.9);
+      u.setPosition(320, H - 148);
     }
-    if (crowns) {
-      this.add.text(60, 90, `Crown pieces: ${crowns}`, { fontSize: '18px', color: '#fef08a' });
-    }
-    this.add.text(60, 114, `Stars: ${Math.max(sharedStarsTotal(c.shared), c.save.collections.stars)}`, { fontSize: '18px', color: '#fde047' });
-    // stairwell door to the secret base
-    const door = this.add.rectangle(W / 2, H - 190, 150, 170, 0x4c1d95).setStrokeStyle(6, 0xa855f7).setInteractive({ useHandCursor: true });
-    this.add.circle(W / 2, H - 230, 26, 0x7c3aed).setStrokeStyle(4, 0xf0abfc);
-    this.add.star(W / 2, H - 230, 5, 8, 17, 0xf0abfc);
-    this.add.text(W / 2, H - 150, 'BASE', { fontSize: '26px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
-    door.on('pointerdown', () => this.scene.start('underground'));
+    makeVanityCorner(this, 205, 520).setDepth(-2);
+    makeToolCorner(this, W - 285, H - 96).setDepth(-2);
 
+    // ---- secret trapdoor entrance (same trigger zone as before) ----
+    makeTrapdoor(this, W / 2, H - 190, 150, 170).setDepth(-2);
+    const doorHit = this.add.rectangle(W / 2, H - 190, 150, 170, 0xffffff, 0).setInteractive({ useHandCursor: true });
+    doorHit.on('pointerdown', () => this.scene.start('underground'));
+
+    // ---- heroes, big and expressive ----
     this.hero = makeHero(this, c.hero);
     this.hero.setPosition(W / 2 - 120, H - 130);
+    this.hero.setScale(1.28).setData('scl', 1.28);
     this.buddy = makeHero(this, c.hero === 'jackson' ? 'layla' : 'jackson');
-    this.buddy.setPosition(W / 2 + 120, H - 130).setAlpha(0.55);
-    // name tags so kids instantly know who is theirs (§15)
-    const me = c.hero === 'jackson' ? 'Jackson — YOU' : 'Layla — YOU';
-    this.add.text(this.hero.x, this.hero.y - 130, me, { fontSize: '18px', color: '#fef08a', fontStyle: 'bold' }).setOrigin(0.5);
-    this.buddyTag = this.add.container(this.buddy.x, this.buddy.y, [
-      this.add.text(0, -132, c.hero === 'jackson' ? 'LAYLA' : 'JACKSON', { fontSize: '15px', color: '#fff', backgroundColor: '#0008', padding: { x: 6, y: 2 } }).setOrigin(0.5)
-    ]);
+    this.buddy.setPosition(W / 2 + 120, H - 130).setAlpha(0.6);
+    this.buddy.setScale(1.28).setData('scl', 1.28);
+    heroIdle(this, this.hero);
+    // name pills that follow each hero
+    this.heroTag = makePrompt(this, this.hero.x, this.hero.y - 215,
+      c.hero === 'jackson' ? 'Jackson • YOU' : 'Layla • YOU',
+      { bg: c.hero === 'jackson' ? 0xb45309 : 0xbe185d, fontSize: '19px', pulse: false });
+    this.buddyTag = makePrompt(this, this.buddy.x, this.buddy.y - 215,
+      c.hero === 'jackson' ? 'Layla' : 'Jackson',
+      { bg: 0x374151, fontSize: '18px', pulse: false });
 
     this.setHint(c.hero === 'jackson' ? 'Walk around! Go to the glowing BASE door!' : 'Walk to the glowy door! Follow the sparkles!');
     // sparkle trail for Layla (no reading needed)
@@ -88,6 +142,9 @@ export class TreehouseScene extends Phaser.Scene {
     const touch = createTouchUI(this, c.hero, (p) => { this.pad = { ...p }; });
     touch.setActionAvailable(false);
     touch.setContextAvailable(false);
+
+    dustMotes(this, W / 2, H / 2, W - 200, H - 200);
+    makeVignette(this);
 
     c.transport.onState((patch) => {
       if (c.hero === 'jackson' && patch.laylaPos) this.buddy.setPosition(patch.laylaPos.x, patch.laylaPos.y);
@@ -116,7 +173,9 @@ export class TreehouseScene extends Phaser.Scene {
     const speed = 260;
     this.hero.x = Phaser.Math.Clamp(this.hero.x + this.pad.mx * speed * dtS, 40, this.scale.width - 40);
     this.hero.y = Phaser.Math.Clamp(this.hero.y + this.pad.my * speed * dtS, 200, this.scale.height - 120);
-    this.buddyTag.setPosition(this.buddy.x, this.buddy.y);
+    heroFace(this.hero, this.pad.mx);
+    this.buddyTag.setPosition(this.buddy.x, this.buddy.y - 215);
+    this.heroTag.setPosition(this.hero.x, this.hero.y - 215);
     c.patch(c.hero === 'jackson' ? { jacksonPos: { x: this.hero.x, y: this.hero.y } } : { laylaPos: { x: this.hero.x, y: this.hero.y } });
 
     if (!this.alarmRang && this.elapsed > 35) {

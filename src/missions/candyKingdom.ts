@@ -28,29 +28,29 @@ export const CANDY_MISSIONS: Mission[] = [
       {
         type: 'exploration', id: 'meet-gummy',
         jacksonHint: 'Walk to the scared gummy bear!',
-        laylaHint: '✨ Follow the sparkles!',
-        laylaIcon: '✨',
+        laylaHint: 'Follow the sparkles!',
+        laylaIcon: 'sparkles',
         voice: 'The Sour King stole our colours! Please help us!'
       },
       {
         type: 'build_magic_coop', id: 'candy-bridge',
-        jacksonHint: '🔨 Collect 3 blocks, then BUILD the bridge!',
-        laylaHint: '🌈 Tap the bridge with magic!',
-        laylaIcon: '🌈',
+        jacksonHint: 'Collect 3 blocks, then BUILD the bridge!',
+        laylaHint: 'Tap the bridge with magic!',
+        laylaIcon: 'rainbow',
         voice: 'Jackson builds. Layla enchants. You need each other!'
       },
       {
         type: 'combat_charge', id: 'jelly-shield',
-        jacksonHint: '⚔️ Hit jellies! Layla breaks shields!',
-        laylaHint: '💫 Zap the shiny shield!',
-        laylaIcon: '💫',
+        jacksonHint: 'Hit jellies! Layla breaks shields!',
+        laylaHint: 'Zap the shiny shield!',
+        laylaIcon: 'burst',
         voice: 'That jelly has a magic shield! Layla, break it!'
       },
       {
         type: 'reward', id: 'crown-1',
-        jacksonHint: '🎉 Crown piece found!',
-        laylaHint: '🎉',
-        laylaIcon: '🎉',
+        jacksonHint: 'Crown piece found!',
+        laylaHint: 'Hooray!',
+        laylaIcon: 'party',
         voice: 'You found the first piece of the Night Rainbow Crown!'
       }
     ]
@@ -61,37 +61,37 @@ export const CANDY_MISSIONS: Mission[] = [
     stages: [
       {
         type: 'build_magic_coop', id: 'choco-path',
-        jacksonHint: '🔨 Build safe platforms over chocolate!',
-        laylaHint: '❄️ Freeze the chocolate!',
-        laylaIcon: '❄️',
+        jacksonHint: 'Build safe platforms over chocolate!',
+        laylaHint: 'Freeze the chocolate!',
+        laylaIcon: 'snow',
         voice: 'Freeze the chocolate while Jackson builds!'
       },
       {
         type: 'reveal_reach', id: 'star-ledge',
-        jacksonHint: '🔨 Layla sees a star up high — build stairs!',
-        laylaHint: '⭐ Tap the star!',
-        laylaIcon: '⭐',
+        jacksonHint: 'Layla sees a star up high — build stairs!',
+        laylaHint: 'Tap the star!',
+        laylaIcon: 'star',
         voice: 'Layla found a fairy star! Jackson, build a way up!'
       },
       {
         type: 'rescue', id: 'unicorn',
-        jacksonHint: '🔨 Smash the cage! Then Layla calms!',
-        laylaHint: '🦄 Pet the unicorn!',
-        laylaIcon: '🦄',
+        jacksonHint: 'Smash the cage! Then Layla calms!',
+        laylaHint: 'Pet the unicorn!',
+        laylaIcon: 'unicorn',
         voice: 'A trapped candy unicorn! Break the cage, then be gentle!'
       },
       {
         type: 'dual_gate', id: 'candy-gate',
-        jacksonHint: '🔧 Hold the machine! Same time as Layla!',
-        laylaHint: '🌈 Hold the rainbow!',
-        laylaIcon: '🌈',
+        jacksonHint: 'Hold the machine! Same time as Layla!',
+        laylaHint: 'Hold the rainbow!',
+        laylaIcon: 'rainbow',
         voice: 'Together! Hold at the same time! High five!'
       },
       {
         type: 'reward', id: 'crown-2',
-        jacksonHint: '🎉 Second crown piece!',
-        laylaHint: '🎉',
-        laylaIcon: '🎉',
+        jacksonHint: 'Second crown piece!',
+        laylaHint: 'Hooray!',
+        laylaIcon: 'party',
         voice: 'Sibling Power! The gate is open!'
       }
     ]

@@ -74,20 +74,25 @@ export function createTouchUI(
   const W = scene.scale.width, H = scene.scale.height;
   const isJ = hero === 'jackson';
 
-  // joystick base + knob
-  const base = scene.add.circle(110, H - 110, 62, 0x000000, 0.35).setScrollFactor(0).setDepth(100);
-  const knob = scene.add.circle(110, H - 110, 28, 0xffffff, 0.75).setScrollFactor(0).setDepth(101);
+  // joystick: wooden ring base + knob with gloss
+  scene.add.circle(110, H - 110, 72, 0x4a2f18, 0.9).setScrollFactor(0).setDepth(99).setStrokeStyle(4, 0xffffff, 0.85);
+  const base = scene.add.circle(110, H - 110, 62, 0x000000, 0.4).setScrollFactor(0).setDepth(100);
+  const knob = scene.add.circle(110, H - 110, 28, 0xe8eefc, 0.95).setScrollFactor(0).setDepth(101).setStrokeStyle(4, 0x1e2a4a);
+  scene.add.circle(102, H - 118, 8, 0xffffff, 0.7).setScrollFactor(0).setDepth(102);
   let joyId: number | null = null;
 
   const mkButton = (
     x: number, y: number, r: number, color: number,
     icon: string, label: string | null
   ): { root: Phaser.GameObjects.Container; btn: Phaser.GameObjects.Arc } => {
-    const btn = scene.add.circle(0, 0, r, color, 0.95).setStrokeStyle(5, 0xffffff);
-    const img = scene.add.image(0, label ? -6 : 0, icon).setDisplaySize(r * 1.05, r * 1.05);
-    const parts: Phaser.GameObjects.GameObject[] = [btn, img];
+    const shadow = scene.add.circle(0, 6, r, 0x000000, 0.35);
+    const rim = scene.add.circle(0, 0, r + 7, 0x1e2a4a, 0.92).setStrokeStyle(3, 0xffffff, 0.9);
+    const btn = scene.add.circle(0, 0, r, color, 0.97).setStrokeStyle(5, 0xffffff);
+    const gloss = scene.add.ellipse(0, -r * 0.42, r * 1.1, r * 0.5, 0xffffff, 0.22);
+    const img = scene.add.image(0, label ? -4 : 0, icon).setDisplaySize(r * 1.1, r * 1.1);
+    const parts: Phaser.GameObjects.GameObject[] = [shadow, rim, btn, gloss, img];
     if (label) {
-      parts.push(scene.add.text(0, r - 14, label, { fontSize: '15px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5));
+      parts.push(scene.add.text(0, r - 12, label, { fontSize: '16px', color: '#fff', fontStyle: 'bold', stroke: '#00000088', strokeThickness: 4 }).setOrigin(0.5));
     }
     const root = scene.add.container(x, y, parts).setScrollFactor(0).setDepth(100);
     btn.setInteractive({ useHandCursor: true });
@@ -120,6 +125,17 @@ export function createTouchUI(
     scene.tweens.add({ targets: root, scale: 1.14, duration: 320, yoyo: true, repeat: times === 0 ? 3 : times });
   };
 
+  const pulsePress = (root: Phaser.GameObjects.Container): void => {
+    const hadLoop = pulseLoops.has(root);
+    if (hadLoop) stopLoop(root);
+    else scene.tweens.killTweensOf(root);
+    root.setScale(0.9);
+    scene.tweens.add({
+      targets: root, scale: 1, duration: 180, ease: 'Back.easeOut',
+      onComplete: () => { if (hadLoop) setPulseWhile(root, true); }
+    });
+  };
+
   const setPulseWhile = (root: Phaser.GameObjects.Container, on: boolean): void => {
     if (on) {
       if (pulseLoops.has(root)) return;
@@ -141,8 +157,8 @@ export function createTouchUI(
     }
   };
 
-  primary.btn.on('pointerdown', () => fire('action'));
-  context.btn.on('pointerdown', () => fire('context'));
+  primary.btn.on('pointerdown', () => { pulsePress(primary.root); fire('action'); });
+  context.btn.on('pointerdown', () => { pulsePress(context.root); fire('context'); });
 
   scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
     if (p.x < W * 0.4 && p.y > H * 0.45 && joyId === null) { joyId = p.id; moveKnob(p); }
